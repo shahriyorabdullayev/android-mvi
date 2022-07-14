@@ -21,10 +21,12 @@ import com.example.androidmvi.activity.main.viewmodel.CreateViewModel
 import com.example.androidmvi.activity.main.viewmodel.CreateViewModelFactory
 import com.example.androidmvi.activity.main.viewmodel.MainViewModel
 import com.example.androidmvi.activity.main.viewmodel.MainViewModelFactory
+import com.example.androidmvi.activity.update.UpdateActivity
 import com.example.androidmvi.adapter.PostAdapter
 import com.example.androidmvi.databinding.ActivityMainBinding
 import com.example.androidmvi.model.Post
 import com.example.androidmvi.network.RetrofitBuilder
+import com.example.androidmvi.utils.Utils
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -34,16 +36,28 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
 
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+    private val postAdapter by lazy { PostAdapter() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initViews()
+        binding.recyclerView.adapter = postAdapter
+
 
         binding.ivAddPost.setOnClickListener {
             startActivity(Intent(this, CreateActivity::class.java))
         }
 
+        postAdapter.longClick = {
+            deletePostDialog(it)
+        }
+
+        postAdapter.click = {
+            val intent = Intent(this, UpdateActivity::class.java)
+            intent.putExtra("post", it)
+            startActivity(intent)
+        }
 
         observeViewModel()
 
@@ -62,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                     is MainState.AllPosts -> {
                         binding.progress.visibility = View.GONE
                         Log.d("MainActivity", "${it.posts}")
-                        refreshAdapter(it.posts)
+                        postAdapter.submitData(it.posts)
                     }
                     is MainState.DeletePost -> {
                         binding.progress.visibility = View.GONE
@@ -76,11 +90,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshAdapter(posts: ArrayList<Post>) {
-        val adapter = PostAdapter(this, posts)
-        binding.recyclerView.adapter = adapter
 
-    }
 
     private fun initViews() {
         val factory = MainViewModelFactory(MainHelperImpl(RetrofitBuilder.POST_SERVICE))
@@ -105,5 +115,20 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.mainIntent.send(MainIntent.DeletePost)
         }
+    }
+
+
+    private fun deletePostDialog(post: Post) {
+        val title = "Delete"
+        val body = "Do you want to delete?"
+        Utils.customDialog(this, title, body, object : Utils.DialogListener {
+            override fun onPositiveClick() {
+                intentDeletePost(post.id!!)
+            }
+
+            override fun onNegativeClick() {
+
+            }
+        })
     }
 }

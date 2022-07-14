@@ -13,13 +13,17 @@ import com.example.androidmvi.activity.update.UpdateActivity
 import com.example.androidmvi.model.Post
 import com.example.androidmvi.utils.Utils
 
-class PostAdapter(var activity: MainActivity, var items: ArrayList<Post>) :
+class PostAdapter() :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    var onClick: ((Post) -> Unit)? = null
+    var longClick: ((Post) -> Unit)? = null
+    var click: ((Post) -> Unit)? = null
+
+    private var list = ArrayList<Post>()
+
 
     override fun getItemCount(): Int {
-        return items.size
+        return list.size
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -29,7 +33,7 @@ class PostAdapter(var activity: MainActivity, var items: ArrayList<Post>) :
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val post: Post = items[position]
+        val post: Post = list[position]
         if (holder is PosterViewHolder) {
             val ll_poster = holder.ll_poster
             val tv_title = holder.tv_title
@@ -39,14 +43,12 @@ class PostAdapter(var activity: MainActivity, var items: ArrayList<Post>) :
             tv_body.setText(post.body)
 
             ll_poster.setOnLongClickListener {
-                deletePostDialog(post)
+                longClick?.invoke(post)
                 true
             }
 
             ll_poster.setOnClickListener {
-                val intent = Intent(activity, UpdateActivity::class.java)
-                intent.putExtra("post", post)
-                activity.startActivity(intent)
+                click?.invoke(post)
             }
         }
     }
@@ -63,17 +65,10 @@ class PostAdapter(var activity: MainActivity, var items: ArrayList<Post>) :
         }
     }
 
-    private fun deletePostDialog(post: Post) {
-        val title = "Delete"
-        val body = "Do you want to delete?"
-        Utils.customDialog(activity, title, body, object : Utils.DialogListener {
-            override fun onPositiveClick() {
-                activity.intentDeletePost(post.id!!)
-            }
 
-            override fun onNegativeClick() {
 
-            }
-        })
+    fun submitData(list: List<Post>) {
+        this.list.addAll(list)
+        notifyDataSetChanged()
     }
 }
